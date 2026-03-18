@@ -1,0 +1,177 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. ZOO-PRO.
+
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+
+       01 MAP-WIDTH        PIC 99 VALUE 50.
+       01 MAP-HEIGHT       PIC 99 VALUE 50.
+
+       01 GAME-DAY         PIC 9(6) VALUE 0.
+       01 DINHEIRO         PIC 9(9)V99 VALUE 500000.
+
+       01 TOTAL-ANIMAIS    PIC 9(5) VALUE 100.
+       01 TOTAL-VISITANTES PIC 9(6) VALUE 0.
+
+       01 I PIC 9(5).
+       01 J PIC S9(5).
+
+       01 ANIMAL-TABLE.
+          05 ANIMAL OCCURS 5000 TIMES.
+             10 ANIMAL-ID PIC 9(5).
+             10 SEXO PIC X.
+             10 IDADE PIC 99.
+             10 PESO PIC 9(3)V9.
+             10 DNA PIC X.
+             10 POS-X PIC 99.
+             10 POS-Y PIC 99.
+             10 FOME PIC 99.
+             10 FELICIDADE PIC 99.
+             10 VIVO PIC X VALUE "S".
+
+       PROCEDURE DIVISION.
+
+       MAIN.
+           PERFORM INIT-ANIMAIS
+           PERFORM GAME-LOOP 200 TIMES
+           STOP RUN.
+
+       INIT-ANIMAIS.
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > TOTAL-ANIMAIS
+               MOVE I TO ANIMAL-ID(I)
+
+               IF FUNCTION MOD(I, 2) = 0
+                   MOVE "M" TO SEXO(I)
+               ELSE
+                   MOVE "F" TO SEXO(I)
+               END-IF
+
+               MOVE 5 TO IDADE(I)
+               MOVE 150 TO PESO(I)
+
+               IF FUNCTION MOD(I, 3) = 0
+                   MOVE "A" TO DNA(I)
+               ELSE
+                   MOVE "B" TO DNA(I)
+               END-IF
+
+               COMPUTE POS-X(I) = FUNCTION MOD(I, MAP-WIDTH)
+               COMPUTE POS-Y(I) = FUNCTION MOD(I * 2, MAP-HEIGHT)
+
+               MOVE 50 TO FOME(I)
+               MOVE 80 TO FELICIDADE(I)
+           END-PERFORM.
+
+       GAME-LOOP.
+           ADD 1 TO GAME-DAY
+
+           PERFORM IA-ANIMAIS
+           PERFORM REPRODUCAO
+           PERFORM EVOLUCAO
+           PERFORM ECONOMIA
+           PERFORM LIMPEZA.
+
+       IA-ANIMAIS.
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > TOTAL-ANIMAIS
+
+               IF VIVO(I) = "S"
+
+                   COMPUTE J = FUNCTION MOD(I, 3) - 1
+                   COMPUTE POS-X(I) = POS-X(I) + J
+
+                   COMPUTE J = FUNCTION MOD(I + 1, 3) - 1
+                   COMPUTE POS-Y(I) = POS-Y(I) + J
+
+                   IF POS-X(I) < 0 MOVE 0 TO POS-X(I)
+                   IF POS-Y(I) < 0 MOVE 0 TO POS-Y(I)
+                   IF POS-X(I) > MAP-WIDTH MOVE MAP-WIDTH TO POS-X(I)
+                   IF POS-Y(I) > MAP-HEIGHT MOVE MAP-HEIGHT TO POS-Y(I)
+
+                   ADD 1 TO FOME(I)
+
+                   IF FOME(I) > 70
+                       SUBTRACT 2 FROM FELICIDADE(I)
+                   END-IF
+
+                   IF FOME(I) > 100
+                       MOVE "N" TO VIVO(I)
+                       DISPLAY "MORTE: " ANIMAL-ID(I)
+                   END-IF
+
+               END-IF
+
+           END-PERFORM.
+
+       REPRODUCAO.
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > TOTAL-ANIMAIS
+
+               IF SEXO(I) = "F" AND IDADE(I) > 2
+                   PERFORM VARYING J FROM 1 BY 1 UNTIL J > TOTAL-ANIMAIS
+
+                       IF SEXO(J) = "M"
+                       AND POS-X(I) = POS-X(J)
+                       AND POS-Y(I) = POS-Y(J)
+
+                           IF FUNCTION MOD(I + J, 20) = 0
+                               PERFORM NASCER
+                           END-IF
+
+                       END-IF
+
+                   END-PERFORM
+               END-IF
+
+           END-PERFORM.
+
+       NASCER.
+           IF TOTAL-ANIMAIS < 5000
+               ADD 1 TO TOTAL-ANIMAIS
+
+               MOVE TOTAL-ANIMAIS TO ANIMAL-ID(TOTAL-ANIMAIS)
+               MOVE "M" TO SEXO(TOTAL-ANIMAIS)
+               MOVE 0 TO IDADE(TOTAL-ANIMAIS)
+               MOVE 100 TO PESO(TOTAL-ANIMAIS)
+
+               MOVE DNA(1) TO DNA(TOTAL-ANIMAIS)
+
+               IF FUNCTION MOD(TOTAL-ANIMAIS, 5) = 0
+                   MOVE "M" TO DNA(TOTAL-ANIMAIS)
+               END-IF
+
+               MOVE POS-X(I) TO POS-X(TOTAL-ANIMAIS)
+               MOVE POS-Y(I) TO POS-Y(TOTAL-ANIMAIS)
+
+               MOVE 40 TO FOME(TOTAL-ANIMAIS)
+               MOVE 80 TO FELICIDADE(TOTAL-ANIMAIS)
+           END-IF.
+
+       EVOLUCAO.
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > TOTAL-ANIMAIS
+
+               IF DNA(I) = "A"
+                   ADD 1 TO PESO(I)
+               END-IF
+
+               IF DNA(I) = "M"
+                   ADD 2 TO PESO(I)
+               END-IF
+
+           END-PERFORM.
+
+       ECONOMIA.
+           COMPUTE TOTAL-VISITANTES = 200 + FUNCTION MOD(GAME-DAY, 100)
+
+           COMPUTE DINHEIRO = DINHEIRO + (TOTAL-VISITANTES * 30)
+
+           DISPLAY "DIA: " GAME-DAY
+           DISPLAY "ANIMAIS: " TOTAL-ANIMAIS
+           DISPLAY "VISITANTES: " TOTAL-VISITANTES
+           DISPLAY "DINHEIRO: " DINHEIRO
+           DISPLAY "---------------------------".
+
+       LIMPEZA.
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > TOTAL-ANIMAIS
+               IF VIVO(I) = "N"
+                   MOVE 0 TO FELICIDADE(I)
+               END-IF
+           END-PERFORM.
